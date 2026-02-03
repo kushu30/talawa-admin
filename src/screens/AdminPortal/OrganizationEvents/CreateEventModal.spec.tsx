@@ -7,14 +7,12 @@ import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
 
-// Mock react-i18next properly with importOriginal to avoid missing exports
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     useTranslation: () => ({
       t: (key: string, params?: Record<string, unknown>) => {
-        // Handle translations with parameters
         if (key === 'weeklyOn' && params?.day) return `Weekly on ${params.day}`;
         if (key === 'monthlyOnDay' && params?.day)
           return `Monthly on day ${params.day}`;
@@ -30,7 +28,6 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-// Mock @mui/x-date-pickers to simple inputs
 vi.mock('@mui/x-date-pickers', () => ({
   LocalizationProvider: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
@@ -47,7 +44,6 @@ vi.mock('@mui/x-date-pickers', () => ({
       onChange?: (date: unknown) => void;
       'data-testid'?: string;
     }) => {
-      // Format value properly for date input (YYYY-MM-DD)
       let formattedValue = '';
       if (value) {
         if (dayjs.isDayjs(value)) {
@@ -1073,24 +1069,33 @@ describe('CreateEventModal', () => {
     await userEvent.click(dropdown);
 
     // Verify the dynamically generated labels based on current date
-    const options = screen.getAllByRole('button');
+    await waitFor(() => {
+      const options = screen.getAllByTestId(/recurrenceOption-/);
 
-    // Should include "Does not repeat", "Daily", "Weekly on [Day]", etc.
-    expect(
-      options.some((option) => option.textContent?.includes('Does not repeat')),
-    ).toBe(true);
-    expect(
-      options.some((option) => option.textContent?.includes('Daily')),
-    ).toBe(true);
-    expect(
-      options.some((option) => option.textContent?.includes('Weekly on')),
-    ).toBe(true);
-    expect(
-      options.some((option) => option.textContent?.includes('Monthly on day')),
-    ).toBe(true);
-    expect(
-      options.some((option) => option.textContent?.includes('Annually on')),
-    ).toBe(true);
+      expect(
+        options.some((option) =>
+          option.textContent?.includes('Does not repeat'),
+        ),
+      ).toBe(true);
+
+      expect(
+        options.some((option) => option.textContent?.includes('Daily')),
+      ).toBe(true);
+
+      expect(
+        options.some((option) => option.textContent?.includes('Weekly on')),
+      ).toBe(true);
+
+      expect(
+        options.some((option) =>
+          option.textContent?.includes('Monthly on day'),
+        ),
+      ).toBe(true);
+
+      expect(
+        options.some((option) => option.textContent?.includes('Annually on')),
+      ).toBe(true);
+    });
   });
 
   // Edge Case Tests
